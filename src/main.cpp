@@ -14,7 +14,7 @@
  * global defines
  */
 #define NODE_FIRMWARE "dust-multi-sensor"
-#define NODE_VERSION "0.052"
+#define NODE_VERSION "0.053"
 
 #define PIN_SDA D2
 #define PIN_SCL D1
@@ -260,7 +260,7 @@ bool PMhandlerDebug(const HomieRange& range, const String& message)
 bool PMhandlerHeaterTargetTemp(const HomieRange& range, const String& message)
 {
   int tt = message.toInt();
-  if (tt>0 && tt <= HEATER_DEFAULT_MAX_TEMP)
+  if (tt>0 && tt <= HEATER_ALLOWED_MAX_TEMP)
   {
     gObjEEpromData.heaterTargetTemp = tt;
     EEPROM.put(0, gObjEEpromData);
