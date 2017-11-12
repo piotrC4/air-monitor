@@ -10,6 +10,7 @@
 
 ## used libraries:
 * [Homie](https://github.com/marvinroger/homie/)
+* [Homie Node Collection](https://github.com/euphi/HomieNodeCollection)
 * [PID](https://github.com/br3ttb/Arduino-PID-Library/)
 * [Cactus IO BME280](http://cactus.io/projects/weather/arduino-weather-station-bme280-sensor)
 
