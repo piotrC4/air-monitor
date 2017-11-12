@@ -14,7 +14,7 @@
  * global defines
  */
 #define NODE_FIRMWARE "dust-multi-sensor"
-#define NODE_VERSION "0.053"
+#define NODE_VERSION "0.054"
 
 #define PIN_SDA D2
 #define PIN_SCL D1
@@ -47,8 +47,9 @@ const char *__FLAGGED_FW_VERSION = "\x6a\x3f\x3e\x0e\xe1" NODE_VERSION  "\xb0\x3
 // persistent EEPROM data storage
 struct EEpromDataStruct
 {
-  int heaterTargetTemp;
-  unsigned long measureWindowSize;
+  int heaterTargetTemp;  // Target temperatur of heater
+  unsigned long measureWindowSize; // Measur window size - [ms]
+  int keepAliveValue;    // Keepalive time
 };
 
 struct PIDDataStruct
@@ -72,6 +73,8 @@ unsigned long gVarMeasurePMS3003WindowStartTime = 0;
 unsigned long gVarMeasureDS18B20WindowStartTime = 0;
 unsigned long gVarMeasureSI7021WindowStartTime = 0;
 unsigned long gVarMeasureBME280WindowStartTime = 0;
+unsigned long gVarKeepAliveReceived=0;
+
 int gVarMainLoopCounter=0;
 //PID tuning parameter - aggresive and conservative
 double gVarAggKp=6, gVarAggKi=3, gVarAggKd=2;
@@ -90,6 +93,7 @@ PIDDataStruct gObjPIDData;
 PID gObjPID(&(gObjPIDData.input), &(gObjPIDData.output), &(gObjPIDData.setPoint), gVarConsKp, gVarConsKi, gVarConsKd, DIRECT);
 HomieNode gObjPMsensorNode("pmsensor", "PM sensor");
 HomieNode gObjEnviroNode("enviro", "enviro data");
+HomieNode gObjKeepAliveNode("keepalive", "Keepalive timer");
 
 /*
  * Homie event handler
@@ -116,114 +120,42 @@ void HomieEventHandler(const HomieEvent& event)
   }
 
 }
-
 /*
- * Homie loop handler
+ * Keepliave tick handler
  */
-void HomieLoopHandler()
+bool keepAliveHandlerTick(const HomieRange& range, const String& message)
 {
-  int readStatus;
-  switch(gVarMainLoopCounter)
+  gVarKeepAliveReceived=millis();
+  if (message == "reboot")
   {
-    case 0:
-      if ( millis() > FORCED_RESET_PERIOD)
-      {
-        LN.log("PMSENSOR", LoggerNode::INFO, "Reboot forced");
-        delay(200);
-        ESP.restart();
-      }
-      break;
-    case 1:
-      if (gVarNoOfDS18B20 > 0 && millis() - gVarMeasureDS18B20WindowStartTime > gObjEEpromData.measureWindowSize)
-      {
-        DeviceAddress tmpDeviceAddress;
-        if(gObjDS18B20.getAddress(tmpDeviceAddress, gVarDS18B20Loop))
-        {
-          float temp = gObjDS18B20.getTempC(tmpDeviceAddress);
-          if (temp != DEVICE_DISCONNECTED_C )
-          {
-            String tmpStr = "temperature/";
-            for (int j=0; j<sizeof(tmpDeviceAddress); j++)
-              tmpStr += String(tmpDeviceAddress[j], HEX);
-            gObjEnviroNode.setProperty(tmpStr).send(String(temp));
-          }
-        }
-        gVarDS18B20Loop=(gVarDS18B20Loop+1)%gVarNoOfDS18B20;
-        if (gVarDS18B20Loop==0)
-        {
-          gVarMeasureDS18B20WindowStartTime=millis();
-        }
-      }
-      break;
-    case 2:
-      readStatus = gObjPMS3003.loopProcessing();
-      if (readStatus > 0)
-      {
-        gObjPMS3003.updateAvg();
-      } else if (readStatus<0) {
-        LN.log("PMSENSOR", LoggerNode::INFO, String("read error:")+readStatus);
-      }
-      if ( (millis()-gVarMeasurePMS3003WindowStartTime > gObjEEpromData.measureWindowSize))
-      {
-        gObjPMS3003.calcAvg();
-        String value;
-        value = String(gObjPMS3003.pm1_avg);
-        gObjPMsensorNode.setProperty("PM1/avg").send(value);
-        value = String(gObjPMS3003.pm1_min);
-        gObjPMsensorNode.setProperty("PM1/min").send(value);
-        value = String(gObjPMS3003.pm1_max);
-        gObjPMsensorNode.setProperty("PM1/max").send(value);
-        value = String(gObjPMS3003.pm10_avg);
-        gObjPMsensorNode.setProperty("PM10/avg").send(value);
-        value = String(gObjPMS3003.pm10_min);
-        gObjPMsensorNode.setProperty("PM10/min").send(value);
-        value = String(gObjPMS3003.pm10_max);
-        gObjPMsensorNode.setProperty("PM10/max").send(value);
-        value = String(gObjPMS3003.pm25_avg);
-        gObjPMsensorNode.setProperty("PM25/avg").send(value);
-        value = String(gObjPMS3003.pm25_min);
-        gObjPMsensorNode.setProperty("PM25/min").send(value);
-        value = String(gObjPMS3003.pm25_max);
-        gObjPMsensorNode.setProperty("PM25/max").send(value);
-        gVarMeasurePMS3003WindowStartTime=millis();
-      }
-      break;
-    case 3:
-      if (gVarSI7021Present && millis() - gVarMeasureSI7021WindowStartTime > gObjEEpromData.measureWindowSize)
-      {
-        if (!gObjSI7021.readValues(SI7021_RESOLUTION_14T_12RH))
-        {
-          String value;
-          value = gObjSI7021.humidity;
-          gObjEnviroNode.setProperty("humidity/si7021").send(value);
-          value = gObjSI7021.temperature;
-          gObjEnviroNode.setProperty("temperature/si7021").send(value);
-        } else {
-          LN.log("PMSENSOR", LoggerNode::WARNING, "read error SI7021");
-        }
-        gVarMeasureSI7021WindowStartTime=millis();
-      }
-      break;
-    case 4:
-      if (gVarBME280Present && millis() - gVarMeasureBME280WindowStartTime > gObjEEpromData.measureWindowSize)
-      {
-        gObjBME280.readSensor();
-        gObjEnviroNode.setProperty("pressure").send(String(gObjBME280.getPressure_MB()));
-        gObjEnviroNode.setProperty("temperature/BME280").send(String(gObjBME280.getTemperature_C()));
-        gObjEnviroNode.setProperty("humidity/BME280").send(String(gObjBME280.getHumidity()));
-        gVarMeasureBME280WindowStartTime=millis();
-      }
-      break;
+    ESP.restart();
   }
-  gVarMainLoopCounter=(gVarMainLoopCounter+1)%5;
-
-  if (gObjPIDData.output != gVarHeaterStatus)
-  {
-    gVarHeaterStatus = gObjPIDData.output;
-    LN.log("PMSENSOR", LoggerNode::DEBUG, String("Target:")+gObjPIDData.setPoint+", input="+gObjPIDData.input+", output="+gObjPIDData.output);
-  }
+  return true;
 }
 
+/*
+ * Keepliave value handler
+ */
+bool keepAliveHandlerValue(const HomieRange& range, const String& message)
+{
+  int oldValue = gObjEEpromData.keepAliveValue;
+  int newValue = message.toInt();
+  if (newValue>10)
+  {
+    gObjEEpromData.keepAliveValue = newValue;
+  }
+  if (message == "0")
+  {
+    gObjEEpromData.keepAliveValue = 0;
+  }
+  if (gObjEEpromData.keepAliveValue!=oldValue)
+  {
+    EEPROM.put(0, gObjEEpromData);
+    EEPROM.commit();
+  }
+  gObjKeepAliveNode.setProperty("value").send(String(gObjEEpromData.keepAliveValue));
+  return true;
+}
 /*
  * measurement Window size message processing
  */
@@ -260,7 +192,7 @@ bool PMhandlerDebug(const HomieRange& range, const String& message)
 bool PMhandlerHeaterTargetTemp(const HomieRange& range, const String& message)
 {
   int tt = message.toInt();
-  if (tt>0 && tt <= HEATER_ALLOWED_MAX_TEMP)
+  if (tt>=0 && tt <= HEATER_ALLOWED_MAX_TEMP)
   {
     gObjEEpromData.heaterTargetTemp = tt;
     EEPROM.put(0, gObjEEpromData);
@@ -270,6 +202,120 @@ bool PMhandlerHeaterTargetTemp(const HomieRange& range, const String& message)
   }
   gObjPMsensorNode.setProperty("heaterTargetTemp").send(String(gObjEEpromData.heaterTargetTemp));
   return false;
+}
+
+/*
+ * Homie loop handler
+ */
+void HomieLoopHandler()
+{
+  int readStatus;
+  switch(gVarMainLoopCounter)
+  {
+    case 0:
+      if ( millis() > FORCED_RESET_PERIOD)
+      {
+        LN.log("PMSENSOR", LoggerNode::INFO, "Reboot forced");
+        delay(200);
+        ESP.restart();
+      }
+      break;
+    case 1:
+      if (gObjEEpromData.keepAliveValue!=0 && (millis()-gVarKeepAliveReceived > gObjEEpromData.keepAliveValue*1000))
+      {
+        LN.log("PMSENSOR", LoggerNode::INFO, "No keepalive received - reboot forced");
+        ESP.restart();
+      }
+      break;
+    case 2:
+      if (gVarNoOfDS18B20 > 0 && millis() - gVarMeasureDS18B20WindowStartTime > gObjEEpromData.measureWindowSize)
+      {
+        DeviceAddress tmpDeviceAddress;
+        if(gObjDS18B20.getAddress(tmpDeviceAddress, gVarDS18B20Loop))
+        {
+          float temp = gObjDS18B20.getTempC(tmpDeviceAddress);
+          if (temp != DEVICE_DISCONNECTED_C )
+          {
+            String tmpStr = "temperature/";
+            for (int j=0; j<sizeof(tmpDeviceAddress); j++)
+              tmpStr += String(tmpDeviceAddress[j], HEX);
+            gObjEnviroNode.setProperty(tmpStr).send(String(temp));
+          }
+        }
+        gVarDS18B20Loop=(gVarDS18B20Loop+1)%gVarNoOfDS18B20;
+        if (gVarDS18B20Loop==0)
+        {
+          gVarMeasureDS18B20WindowStartTime=millis();
+        }
+      }
+      break;
+    case 3:
+      readStatus = gObjPMS3003.loopProcessing();
+      if (readStatus > 0)
+      {
+        gObjPMS3003.updateAvg();
+      } else if (readStatus<0) {
+        LN.log("PMSENSOR", LoggerNode::INFO, String("read error:")+readStatus);
+      }
+      if ( (millis()-gVarMeasurePMS3003WindowStartTime > gObjEEpromData.measureWindowSize))
+      {
+        gObjPMS3003.calcAvg();
+        String value;
+        value = String(gObjPMS3003.pm1_avg);
+        gObjPMsensorNode.setProperty("PM1/avg").send(value);
+        value = String(gObjPMS3003.pm1_min);
+        gObjPMsensorNode.setProperty("PM1/min").send(value);
+        value = String(gObjPMS3003.pm1_max);
+        gObjPMsensorNode.setProperty("PM1/max").send(value);
+        value = String(gObjPMS3003.pm10_avg);
+        gObjPMsensorNode.setProperty("PM10/avg").send(value);
+        value = String(gObjPMS3003.pm10_min);
+        gObjPMsensorNode.setProperty("PM10/min").send(value);
+        value = String(gObjPMS3003.pm10_max);
+        gObjPMsensorNode.setProperty("PM10/max").send(value);
+        value = String(gObjPMS3003.pm25_avg);
+        gObjPMsensorNode.setProperty("PM25/avg").send(value);
+        value = String(gObjPMS3003.pm25_min);
+        gObjPMsensorNode.setProperty("PM25/min").send(value);
+        value = String(gObjPMS3003.pm25_max);
+        gObjPMsensorNode.setProperty("PM25/max").send(value);
+        gVarMeasurePMS3003WindowStartTime=millis();
+      }
+      break;
+    case 4:
+      if (gVarSI7021Present && millis() - gVarMeasureSI7021WindowStartTime > gObjEEpromData.measureWindowSize)
+      {
+        if (!gObjSI7021.readValues(SI7021_RESOLUTION_14T_12RH))
+        {
+          String value;
+          value = gObjSI7021.humidity;
+          gObjEnviroNode.setProperty("humidity/si7021").send(value);
+          value = gObjSI7021.temperature;
+          gObjEnviroNode.setProperty("temperature/si7021").send(value);
+        } else {
+          LN.log("PMSENSOR", LoggerNode::WARNING, "read error SI7021");
+        }
+        gVarMeasureSI7021WindowStartTime=millis();
+      }
+      break;
+    case 5:
+      if (gVarBME280Present && millis() - gVarMeasureBME280WindowStartTime > gObjEEpromData.measureWindowSize)
+      {
+        gObjBME280.readSensor();
+        gObjEnviroNode.setProperty("pressure").send(String(gObjBME280.getPressure_MB()));
+        gObjEnviroNode.setProperty("temperature/BME280").send(String(gObjBME280.getTemperature_C()));
+        gObjEnviroNode.setProperty("humidity/BME280").send(String(gObjBME280.getHumidity()));
+        gVarMeasureBME280WindowStartTime=millis();
+      }
+      break;
+  }
+  gVarMainLoopCounter=(gVarMainLoopCounter+1)%6;
+
+  if (gObjPIDData.output != gVarHeaterStatus)
+  {
+    gVarHeaterStatus = gObjPIDData.output;
+    LN.log("PMSENSOR", LoggerNode::DEBUG, String("Target:")+gObjPIDData.setPoint+", input="+gObjPIDData.input+", output="+gObjPIDData.output);
+  }
 }
 
 /*
@@ -288,6 +334,7 @@ void HomieSetupHandler()
   // Prepare BMP sensor
   gVarBME280Present= gObjBME280.begin();
 
+  gObjKeepAliveNode.setProperty("value").send(String(gObjEEpromData.keepAliveValue));
   gObjPMsensorNode.setProperty("measureWindowSize").send(String(gObjEEpromData.measureWindowSize/1000));
   gObjPMsensorNode.setProperty("heaterTargetTemp").send(String(gObjEEpromData.heaterTargetTemp));
   gObjPMsensorNode.setProperty("debug").send("OFF");
@@ -329,6 +376,9 @@ void setup()
   gObjEEpromData.heaterTargetTemp = gObjEEpromData.heaterTargetTemp > HEATER_ALLOWED_MAX_TEMP ? HEATER_DEFAULT_MAX_TEMP : gObjEEpromData.heaterTargetTemp;
   gObjEEpromData.measureWindowSize = gObjEEpromData.measureWindowSize > MEASUREMENT_WINDOW_ALLOWED_MAX ? MEASUREMENT_WINDOWS_DEFAULT : gObjEEpromData.measureWindowSize;
   gObjEEpromData.measureWindowSize = gObjEEpromData.measureWindowSize < MEASUREMENT_WINDOW_ALLOWED_MIN ? MEASUREMENT_WINDOWS_DEFAULT : gObjEEpromData.measureWindowSize;
+
+  gObjEEpromData.keepAliveValue = gObjEEpromData.keepAliveValue < 0 ? 0 : gObjEEpromData.keepAliveValue;
+  gObjEEpromData.keepAliveValue = (gObjEEpromData.keepAliveValue < 10) && (gObjEEpromData.keepAliveValue > 0) ? 10 : gObjEEpromData.keepAliveValue;
 
   // Prepare heater output
   pinMode(PIN_HEATER, OUTPUT);
@@ -383,15 +433,17 @@ void setup()
   Homie.setSetupFunction(HomieSetupHandler);
   Homie.setLoopFunction(HomieLoopHandler);
   LN.setLoglevel(LoggerNode::INFO);
-  gObjPMsensorNode.advertise("PM10");
   gObjPMsensorNode.advertise("PM1");
   gObjPMsensorNode.advertise("PM25");
-  gObjPMsensorNode.advertise("heater");
+  gObjPMsensorNode.advertise("PM10");
   gObjPMsensorNode.advertise("measureWindowSize").settable(PMhandlerWindowSize);
   gObjPMsensorNode.advertise("heaterTargetTemp").settable(PMhandlerHeaterTargetTemp);
   gObjPMsensorNode.advertise("debug").settable(PMhandlerDebug);
+  gObjKeepAliveNode.advertise("value").settable(keepAliveHandlerValue);
+  gObjKeepAliveNode.advertise("tick").settable(keepAliveHandlerTick);
   gObjEnviroNode.advertise("humidity");
   gObjEnviroNode.advertise("temperature");
+  gObjEnviroNode.advertise("pressure");
   Homie.disableLogging();
     // Start Homie
   Homie.setup();
