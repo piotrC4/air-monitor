@@ -118,8 +118,8 @@ void HomieEventHandler(const HomieEvent& event)
       digitalWrite(PIN_HEATER, LOW);
       break;
   }
-
 }
+
 /*
  * Keepliave tick handler
  */
@@ -156,6 +156,7 @@ bool keepAliveHandlerValue(const HomieRange& range, const String& message)
   gObjKeepAliveNode.setProperty("value").send(String(gObjEEpromData.keepAliveValue));
   return true;
 }
+
 /*
  * measurement Window size message processing
  */
@@ -172,8 +173,9 @@ bool PMhandlerWindowSize(const HomieRange& range, const String& message)
   gObjPMsensorNode.setProperty("measureWindowSize").send(String(gObjEEpromData.measureWindowSize/1000));
   return false;
 }
+
 /*
- *  Debug message processing
+ * Debug message processing
  */
 bool PMhandlerDebug(const HomieRange& range, const String& message)
 {
@@ -186,6 +188,7 @@ bool PMhandlerDebug(const HomieRange& range, const String& message)
     gObjPMsensorNode.setProperty("debug").send("OFF");
   }
 }
+
 /*
  * Heater Target temperature message processing
  */
@@ -429,7 +432,6 @@ void setup()
   Homie.onEvent(HomieEventHandler);
   Homie.disableLedFeedback();
   Homie.setResetTrigger(D8, HIGH, 4000);
-
   Homie.setSetupFunction(HomieSetupHandler);
   Homie.setLoopFunction(HomieLoopHandler);
   LN.setLoglevel(LoggerNode::INFO);
