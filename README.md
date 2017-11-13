@@ -3,7 +3,7 @@
 ## Features:
 * PM1.0, PM2.5, PM10 monitoring
 * Temperature, himidity and pressure monitoring
-* continous monitoring with average calculation for given period
+* Continous measurement with average calculation for given period
 * Data reporting via MQTT
 * Fully configurable via MQTT (heater temperature, measure freqnecy)
 * Heating of intake air - avoid errors from high air humidity   
@@ -22,6 +22,9 @@
 * BME280 pressure sensor
 * N-MOSFET
 * 4k7Ω resistor
+
+## Schematic:
+![alt text](docs/air_monitor_schem.png "Air monitor schematic")
 
 ## Installation:
 
@@ -46,13 +49,24 @@ From the list with files in the left tab open the platformio.ini and change the 
 
 In **PlatformIO** menu choose option **Build**
 
-### 5. Upload to ESP8266
+### 5. Upload firmware to ESP8266
 
 Connect ESP to PC via serial adapter. In **PlatformIO** menu choose option **Upload**.
 
+### 6. Installig Homie UI
+
+Copy UI bundle to data/homie folder  (See https://github.com/marvinroger/homie-esp8266/tree/develop/data/homie )
+
+### 7. Upload SPIFFS image to ESP8266
+
+In **Platformio** menu choose option **Run other target ...** and next **PIO uload SPIFFS image**
+
 ## Configuration
 
+Software is build on top of Homie framework - configuration will be done in Homie-way. Connect to MyIOT-xxxxx AP and go to configration UI. Also there is Andorid configuration app - see http://marvinroger.github.io/homie-esp8266/develop/configuration/http-json-api/
+
 ## Usage
+
 
 
 ## Credits
