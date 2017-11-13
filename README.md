@@ -6,6 +6,7 @@
 * Continous measurement with average calculation for given period
 * Data reporting via MQTT
 * Fully configurable via MQTT (heater temperature, measure freqnecy)
+* All Homie features (OTA upgrades, JSON configuration)
 * Heating of intake air - avoid errors from high air humidity   
 * Non blocking (no delay) code with serial support
 
@@ -20,11 +21,17 @@
 * Air quality sensor PMS3003
 * SI7021 temperature and humidity sensor
 * BME280 pressure sensor
+* DS18B20 1-wire bus temperature sensor
 * N-MOSFET
 * 4k7Ω resistor
+* PTC Heater element
 
 ## Schematic:
 ![alt text](docs/air_monitor_schem.png "Air monitor schematic")
+
+BME280 and SI7021 have to be connected to I2C 1W connector (PIN1 - Vcc, PIN2 - GND, PIN3 - SCL, PIN4 - SDA). DS18B20 sensor have to be connected to 1W connector (PIN1 - Vcc, PIN2 - data, PIN3 - GND). Connector "Heat Voltage" is voltage control of PTC Heater element (PIN1 to PIN2 - main power voltage, PIN2 to PIN3 - 5V ).
+
+DS18B20 is used for reading temperature of air and as a source of temperature for heater driver - if multiple DS1820 are connected the highest temperature is used as reference.
 
 ## Installation:
 
@@ -61,13 +68,42 @@ Copy UI bundle to data/homie folder  (See https://github.com/marvinroger/homie-e
 
 In **Platformio** menu choose option **Run other target ...** and next **PIO uload SPIFFS image**
 
-## Configuration
+## Initial configuration
 
 Software is build on top of Homie framework - configuration will be done in Homie-way. Connect to MyIOT-xxxxx AP and go to configration UI. Also there is Andorid configuration app - see http://marvinroger.github.io/homie-esp8266/develop/configuration/http-json-api/
 
 ## Usage
 
+### Data reading
 
+All reads are published in MQTT topics in Homie-way. For example - if homie prefix is `homie/` and device ID: `airq` we have readings like:
+* `homie/airq/pmsensor/measureWindowSize` - period of single mesurement cycle [seconds]
+* `homie/airq/pmsensor/heaterTargetTemp` - target teperature for heater
+* `homie/airq/pmsensor/PM10/avg` - PM10 average for given period
+* `homie/airq/pmsensor/PM10/min` - PM10 min reading for given period
+* `homie/airq/pmsensor/PM10/max` - PM10 max reading for given period
+* `homie/airq/pmsensor/PM25/avg` - PM2.5 average for given period
+* `homie/airq/pmsensor/PM25/min` - PM2.5 min reading for given period
+* `homie/airq/pmsensor/PM25/max` - PM2.5 max reading for given period
+* `homie/airq/pmsensor/PM1/avg` - PM1 average for given period
+* `homie/airq/pmsensor/PM1/min` - PM1 min reading for given period
+* `homie/airq/pmsensor/PM1/max` - PM1 max reading for given period
+* `homie/airq/enviro/humidity/si7021` - Humidity reading from SI7021
+* `homie/airq/enviro/temperature/si7021` - Temperature reading from SI7021
+* `homie/airq/enviro/humidity/BME280` - Humidity reading from BME280
+* `homie/airq/enviro/temperature/BME280` - Temperature reading from BME280
+* `homie/airq/enviro/pressure` - Pressure reading from BME280
+* `homie/airq/enviro/temperature/xxxxxxxxxxxxx` - Temperature reading from DS18B20 (xxxx represents device address)
+* `homie/airq/Log/#` - log information - for example number of DS18B20 sensor, presence of SI7021 and BME280, errors
+
+### Configuration
+
+By publishing message to specific topics configuration is possbile:
+* `homie/airq/pmsensor/measureWindowSize/set` - set measurement period in seconds
+* `homie/airq/pmsensor/heaterTargetTemp/set` - heater targer temperature
+* `homie/airq/pmsensor/debug/set` - ON/OFF message - turn on off debug messages
+* `homie/airq/keepalive/value/set` - keepalive timeout - if tick message not arrive in given time, device will reboot, 0 - disable keepalive
+* `homie/airq/keepalive/tic/set` - any message to reset keepalive counter
 
 ## Credits
 
