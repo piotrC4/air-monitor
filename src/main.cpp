@@ -14,7 +14,7 @@
  * global defines
  */
 #define NODE_FIRMWARE "dust-multi-sensor"
-#define NODE_VERSION "0.054"
+#define NODE_VERSION "0.059"
 
 #define PIN_SDA D2
 #define PIN_SCL D1
@@ -22,6 +22,8 @@
 #define PIN_HEATER D4
 #define PIN_PMS_SET D5
 #define PIN_PMS_RST D8
+
+#define DEFAULT_ALTITUDE 70
 
 #define TEMPERATURE_PRECISION_1W 9
 
@@ -50,6 +52,7 @@ struct EEpromDataStruct
   int heaterTargetTemp;  // Target temperatur of heater
   unsigned long measureWindowSize; // Measur window size - [ms]
   int keepAliveValue;    // Keepalive time
+  int currentAltitude;   // Alitude for pressure measurement
 };
 
 struct PIDDataStruct
@@ -105,6 +108,7 @@ void HomieEventHandler(const HomieEvent& event)
     case HomieEventType::CONFIGURATION_MODE: // Default eeprom data in configuration mode
       gObjEEpromData.heaterTargetTemp = HEATER_DEFAULT_MAX_TEMP;
       gObjEEpromData.measureWindowSize = MEASUREMENT_WINDOWS_DEFAULT;
+      gObjEEpromData.currentAltitude = DEFAULT_ALTITUDE;
       EEPROM.put(0, gObjEEpromData);
       EEPROM.commit();
       digitalWrite(PIN_HEATER, LOW);
@@ -156,7 +160,28 @@ bool keepAliveHandlerValue(const HomieRange& range, const String& message)
   gObjKeepAliveNode.setProperty("value").send(String(gObjEEpromData.keepAliveValue));
   return true;
 }
-
+/*
+ * Altitude handler
+ */
+bool enviroNodehandlerAltitude(const HomieRange& range, const String& message)
+{
+  int oldValue = gObjEEpromData.currentAltitude;
+  int newValue = message.toInt();
+  if (message == "0")
+  {
+    newValue=0;
+    gObjEEpromData.currentAltitude=0;
+  } else if (newValue > 0) {
+    gObjEEpromData.currentAltitude=newValue;
+  }
+  if (oldValue!=newValue)
+  {
+    EEPROM.put(0, gObjEEpromData);
+    EEPROM.commit();
+  }
+  gObjEnviroNode.setProperty("altitude").send(String(gObjEEpromData.currentAltitude));
+  return true;
+}
 /*
  * measurement Window size message processing
  */
@@ -264,6 +289,25 @@ void HomieLoopHandler()
       {
         gObjPMS3003.calcAvg();
         String value;
+        value = String(gObjPMS3003.pm1cf_avg);
+        gObjPMsensorNode.setProperty("PM1cf/avg").send(value);
+        value = String(gObjPMS3003.pm1cf_min);
+        gObjPMsensorNode.setProperty("PM1cf/min").send(value);
+        value = String(gObjPMS3003.pm1cf_max);
+        gObjPMsensorNode.setProperty("PM1cf/max").send(value);
+        value = String(gObjPMS3003.pm10cf_avg);
+        gObjPMsensorNode.setProperty("PM10cf/avg").send(value);
+        value = String(gObjPMS3003.pm10cf_min);
+        gObjPMsensorNode.setProperty("PM10cf/min").send(value);
+        value = String(gObjPMS3003.pm10cf_max);
+        gObjPMsensorNode.setProperty("PM10cf/max").send(value);
+        value = String(gObjPMS3003.pm25cf_avg);
+        gObjPMsensorNode.setProperty("PM25cf/avg").send(value);
+        value = String(gObjPMS3003.pm25cf_min);
+        gObjPMsensorNode.setProperty("PM25cf/min").send(value);
+        value = String(gObjPMS3003.pm25cf_max);
+        gObjPMsensorNode.setProperty("PM25cf/max").send(value);
+
         value = String(gObjPMS3003.pm1_avg);
         gObjPMsensorNode.setProperty("PM1/avg").send(value);
         value = String(gObjPMS3003.pm1_min);
@@ -283,6 +327,7 @@ void HomieLoopHandler()
         value = String(gObjPMS3003.pm25_max);
         gObjPMsensorNode.setProperty("PM25/max").send(value);
         gVarMeasurePMS3003WindowStartTime=millis();
+
       }
       break;
     case 4:
@@ -305,7 +350,12 @@ void HomieLoopHandler()
       if (gVarBME280Present && millis() - gVarMeasureBME280WindowStartTime > gObjEEpromData.measureWindowSize)
       {
         gObjBME280.readSensor();
-        gObjEnviroNode.setProperty("pressure").send(String(gObjBME280.getPressure_MB()));
+
+        // p0 =p1 (1-0,0065h / (T + 0,0065h +273,15))^-5,257
+        float seaLevelPressure = (float)gObjBME280.getPressure_MB() * pow(1.0-((0.0065*(float)gObjEEpromData.currentAltitude)/((float)gObjBME280.getTemperature_C()+0.0065*(float)gObjEEpromData.currentAltitude+273.15)),-5.257);
+        //float seaLevelPressure = gObjBME280.getPressure_MB() / pow(1.0-(float)gObjEEpromData.currentAltitude/44330, 5.255);
+        gObjEnviroNode.setProperty("pressure/atmospheric").send(String(gObjBME280.getPressure_MB()));
+        gObjEnviroNode.setProperty("pressure/seaLevel").send(String(seaLevelPressure));
         gObjEnviroNode.setProperty("temperature/BME280").send(String(gObjBME280.getTemperature_C()));
         gObjEnviroNode.setProperty("humidity/BME280").send(String(gObjBME280.getHumidity()));
         gVarMeasureBME280WindowStartTime=millis();
@@ -341,6 +391,7 @@ void HomieSetupHandler()
   gObjPMsensorNode.setProperty("measureWindowSize").send(String(gObjEEpromData.measureWindowSize/1000));
   gObjPMsensorNode.setProperty("heaterTargetTemp").send(String(gObjEEpromData.heaterTargetTemp));
   gObjPMsensorNode.setProperty("debug").send("OFF");
+  gObjEnviroNode.setProperty("altitude").send(String(gObjEEpromData.currentAltitude));
 
   gVarMeasurePMS3003WindowStartTime=millis();
   gVarMeasureDS18B20WindowStartTime=millis();
@@ -383,6 +434,7 @@ void setup()
   gObjEEpromData.keepAliveValue = gObjEEpromData.keepAliveValue < 0 ? 0 : gObjEEpromData.keepAliveValue;
   gObjEEpromData.keepAliveValue = (gObjEEpromData.keepAliveValue < 10) && (gObjEEpromData.keepAliveValue > 0) ? 10 : gObjEEpromData.keepAliveValue;
 
+  gObjEEpromData.currentAltitude = (gObjEEpromData.currentAltitude >8000 || gObjEEpromData.currentAltitude<0) ? DEFAULT_ALTITUDE : gObjEEpromData.currentAltitude;
   // Prepare heater output
   pinMode(PIN_HEATER, OUTPUT);
   digitalWrite(PIN_HEATER, LOW);
@@ -446,6 +498,7 @@ void setup()
   gObjEnviroNode.advertise("humidity");
   gObjEnviroNode.advertise("temperature");
   gObjEnviroNode.advertise("pressure");
+  gObjEnviroNode.advertise("altitude").settable(enviroNodehandlerAltitude);
   Homie.disableLogging();
     // Start Homie
   Homie.setup();

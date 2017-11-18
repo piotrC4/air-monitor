@@ -11,12 +11,12 @@ void PMS3003::begin( int _pin_set, int _pin_rst)
   pin_rst = _pin_rst;
   readCounter=0;
   measurementInit();
+  pm25cf_avg=0;
+  pm10cf_avg=0;
+  pm1cf_avg=0;
   pm25_avg=0;
   pm10_avg=0;
   pm1_avg=0;
-  pm25us_avg=0;
-  pm10us_avg=0;
-  pm1us_avg=0;
 }
 
 
@@ -25,24 +25,24 @@ void PMS3003::begin( int _pin_set, int _pin_rst)
  */
 void PMS3003::measurementInit()
 {
+  pm1cf_min = 999999;
+  pm25cf_min = 999999;
+  pm10cf_min = 999999;
   pm1_min = 999999;
   pm25_min = 999999;
   pm10_min = 999999;
-  pm1us_min = 999999;
-  pm25us_min = 999999;
-  pm10us_min = 999999;
+  pm1cf_max = 0;
+  pm25cf_max = 0;
+  pm10cf_max = 0;
   pm1_max = 0;
   pm25_max = 0;
   pm10_max = 0;
-  pm1us_max = 0;
-  pm25us_max = 0;
-  pm10us_max = 0;
+  pm1cf_sum = 0;
+  pm25cf_sum = 0;
+  pm10cf_sum = 0;
   pm1_sum = 0;
   pm25_sum = 0;
   pm10_sum = 0;
-  pm1us_sum = 0;
-  pm25us_sum = 0;
-  pm10us_sum = 0;
   indexCounter = 0;
 
 }
@@ -92,12 +92,12 @@ int PMS3003::loopProcessing()
     int PMSCheckSum= ((unsigned int)PMSbuf[22] << 8 ) + ((unsigned int)PMSbuf[23]);
     if (calcCheckSum == PMSCheckSum)
     {
-      pm1_read    = (PMSbuf[4]*256)+PMSbuf[5];
-      pm25_read   = (PMSbuf[6]*256)+PMSbuf[7];
-      pm10_read   = (PMSbuf[8]*256)+PMSbuf[9];
-      pm1us_read  = (PMSbuf[10]*256)+PMSbuf[11];
-      pm25us_read = (PMSbuf[12]*256)+PMSbuf[13];
-      pm10us_read = (PMSbuf[14]*256)+PMSbuf[15];
+      pm1cf_read    = (PMSbuf[4]*256)+PMSbuf[5];
+      pm25cf_read   = (PMSbuf[6]*256)+PMSbuf[7];
+      pm10cf_read   = (PMSbuf[8]*256)+PMSbuf[9];
+      pm1_read  = (PMSbuf[10]*256)+PMSbuf[11];
+      pm25_read = (PMSbuf[12]*256)+PMSbuf[13];
+      pm10_read = (PMSbuf[14]*256)+PMSbuf[15];
       return 1;
     } else {
       return -1;
@@ -117,6 +117,13 @@ void PMS3003::updateAvg()
   {
     measurementInit();
   }
+  pm25cf_max = (pm25cf_read > pm25cf_max) ? pm25cf_read : pm25cf_max;
+  pm25cf_min = (pm25cf_read < pm25cf_min) ? pm25cf_read : pm25cf_min;
+  pm10cf_max = (pm10cf_read > pm10cf_max) ? pm10cf_read : pm10cf_max;
+  pm10cf_min = (pm10cf_read < pm10cf_min) ? pm10cf_read : pm10cf_min;
+  pm1cf_max  = (pm1cf_read > pm1cf_max) ? pm1cf_read : pm1cf_max;
+  pm1cf_min  = (pm1cf_read < pm1cf_min) ? pm1cf_read : pm1cf_min;
+
   pm25_max = (pm25_read > pm25_max) ? pm25_read : pm25_max;
   pm25_min = (pm25_read < pm25_min) ? pm25_read : pm25_min;
   pm10_max = (pm10_read > pm10_max) ? pm10_read : pm10_max;
@@ -124,20 +131,13 @@ void PMS3003::updateAvg()
   pm1_max  = (pm1_read > pm1_max) ? pm1_read : pm1_max;
   pm1_min  = (pm1_read < pm1_min) ? pm1_read : pm1_min;
 
-  pm25us_max = (pm25us_read > pm25us_max) ? pm25us_read : pm25us_max;
-  pm25us_min = (pm25us_read < pm25us_min) ? pm25us_read : pm25us_min;
-  pm10us_max = (pm10us_read > pm10us_max) ? pm10us_read : pm10us_max;
-  pm10us_min = (pm10us_read < pm10us_min) ? pm10us_read : pm10us_min;
-  pm1us_max  = (pm1us_read > pm1us_max) ? pm1us_read : pm1us_max;
-  pm1us_min  = (pm1us_read < pm1us_min) ? pm1us_read : pm1us_min;
 
-
+  pm25cf_sum += pm25cf_read;
+  pm10cf_sum += pm10cf_read;
+  pm1cf_sum  += pm1cf_read;
   pm25_sum += pm25_read;
   pm10_sum += pm10_read;
   pm1_sum  += pm1_read;
-  pm25us_sum += pm25us_read;
-  pm10us_sum += pm10us_read;
-  pm1us_sum  += pm1us_read;
 
   readCounter++;
 }
@@ -148,28 +148,28 @@ void PMS3003::calcAvg()
 {
   if (readCounter>3)
   {
+    pm1cf_avg = (float)(pm1cf_sum - pm1cf_min - pm1cf_max) / (float)(readCounter - 2);
+    pm25cf_avg = (float)(pm25cf_sum - pm25cf_min - pm25cf_max) / (float)(readCounter - 2);
+    pm10cf_avg = (float)(pm10cf_sum - pm10cf_min - pm10cf_max) / (float)(readCounter - 2);
     pm1_avg = (float)(pm1_sum - pm1_min - pm1_max) / (float)(readCounter - 2);
     pm25_avg = (float)(pm25_sum - pm25_min - pm25_max) / (float)(readCounter - 2);
     pm10_avg = (float)(pm10_sum - pm10_min - pm10_max) / (float)(readCounter - 2);
-    pm1us_avg = (float)(pm1us_sum - pm1us_min - pm1us_max) / (float)(readCounter - 2);
-    pm25us_avg = (float)(pm25us_sum - pm25us_min - pm25us_max) / (float)(readCounter - 2);
-    pm10us_avg = (float)(pm10us_sum - pm10us_min - pm10us_max) / (float)(readCounter - 2);
 
   } else if (readCounter > 0 ){
+    pm1cf_avg = pm1cf_sum / (float)readCounter;
+    pm25cf_avg = pm25cf_sum / (float)readCounter;
+    pm10cf_avg = pm10cf_sum / (float)readCounter;
     pm1_avg = pm1_sum / (float)readCounter;
     pm25_avg = pm25_sum / (float)readCounter;
     pm10_avg = pm10_sum / (float)readCounter;
-    pm1us_avg = pm1us_sum / (float)readCounter;
-    pm25us_avg = pm25us_sum / (float)readCounter;
-    pm10us_avg = pm10us_sum / (float)readCounter;
 
   } else {
+    pm1cf_avg = 0;
+    pm25cf_avg = 0;
+    pm10cf_avg = 0;
     pm1_avg = 0;
     pm25_avg = 0;
     pm10_avg = 0;
-    pm1us_avg = 0;
-    pm25us_avg = 0;
-    pm10us_avg = 0;
 
   }
   readCounter=0;

@@ -60,18 +60,18 @@ private:
 
 
 public:
-  float pm1_avg,  pm1us_avg;
-  float pm25_avg, pm25us_avg;
-  float pm10_avg, pm10us_avg;
-  long pm1_read,  pm1us_read;
-  long pm25_read, pm25us_read;
-  long pm10_read, pm10us_read;
+  float pm1cf_avg,  pm1_avg;
+  float pm25cf_avg, pm25_avg;
+  float pm10cf_avg, pm10_avg;
+  long pm1cf_read,  pm1_read;
+  long pm25cf_read, pm25_read;
+  long pm10cf_read, pm10_read;
+  long pm1cf_min, pm1cf_max, pm1cf_sum;
+  long pm25cf_min, pm25cf_max, pm25cf_sum;
+  long pm10cf_min, pm10cf_max, pm10cf_sum;
   long pm1_min, pm1_max, pm1_sum;
   long pm25_min, pm25_max, pm25_sum;
   long pm10_min, pm10_max, pm10_sum;
-  long pm1us_min, pm1us_max, pm1us_sum;
-  long pm25us_min, pm25us_max, pm25us_sum;
-  long pm10us_min, pm10us_max, pm10us_sum;
 
   void begin(int,int);
   void updateAvg();
