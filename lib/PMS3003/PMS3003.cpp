@@ -144,7 +144,7 @@ void PMS3003::updateAvg()
 /*
  * Calculate avarege from previous reads
  */
-void PMS3003::calcAvg()
+int PMS3003::calcAvg()
 {
   if (readCounter>3)
   {
@@ -172,5 +172,7 @@ void PMS3003::calcAvg()
     pm10_avg = 0;
 
   }
+  int tmp=readCounter;
   readCounter=0;
+  return tmp;
 }

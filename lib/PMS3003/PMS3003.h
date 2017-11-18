@@ -75,7 +75,7 @@ public:
 
   void begin(int,int);
   void updateAvg();
-  void calcAvg();
+  int calcAvg();
   int loopProcessing();
 
 };

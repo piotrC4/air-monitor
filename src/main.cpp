@@ -14,7 +14,7 @@
  * global defines
  */
 #define NODE_FIRMWARE "dust-multi-sensor"
-#define NODE_VERSION "0.059"
+#define NODE_VERSION "0.060"
 
 #define PIN_SDA D2
 #define PIN_SCL D1
@@ -287,8 +287,10 @@ void HomieLoopHandler()
       }
       if ( (millis()-gVarMeasurePMS3003WindowStartTime > gObjEEpromData.measureWindowSize))
       {
-        gObjPMS3003.calcAvg();
+        int noOfReads = gObjPMS3003.calcAvg();
         String value;
+        value = String(noOfReads);
+        gObjPMsensorNode.setProperty("reads").send(value);
         value = String(gObjPMS3003.pm1cf_avg);
         gObjPMsensorNode.setProperty("PM1cf/avg").send(value);
         value = String(gObjPMS3003.pm1cf_min);
