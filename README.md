@@ -1,4 +1,4 @@
-[Homie](https://github.com/marvinroger/homie) based AIR Quality sensor.
+[Homie](https://github.com/homieiot/convention) based AIR Quality sensor.
 
 ## Features:
 * PM1.0, PM2.5, PM10 monitoring
@@ -11,7 +11,7 @@
 * Non blocking (no delay) code with serial support
 
 ## Used libraries:
-* [Homie](https://github.com/marvinroger/homie/)
+* [Homie ESP8266](https://github.com/homieiot/homie-esp8266)
 * [Homie Node Collection](https://github.com/euphi/HomieNodeCollection)
 * [PID](https://github.com/br3ttb/Arduino-PID-Library/)
 * [Cactus IO BME280](http://cactus.io/projects/weather/arduino-weather-station-bme280-sensor)
@@ -35,42 +35,36 @@ DS18B20 is used for reading temperature of air and as a source of temperature fo
 
 ## Installation:
 
-[PlatformIO](http://platformio.org/) and optionally [Atom editor](https://atom.io/) with PlatformIO IDE package are required. See [installation procedure](http://docs.platformio.org/en/stable/ide/atom.html#installation)
+[Visual Studio Code](https://code.visualstudio.com/) and [PlatformIO IDE extenstion](https://docs.platformio.org/en/latest/ide/vscode.html)
+[GIT](https://git-scm.com/downloads)
 
-### 1. Clone the Repository
+### 1. Clone the Repository into VS Code
 
-``` bash
-git clone https://github.com/enc-X/air-monitor
-```
+In VS Code press F1 enter ''git: clone'' + Enter and insert link to my repository (git@github.com:enc-X/air-monitor.git)
 
-or download  [repository](https://github.com/enc-X/air-monitor/archive/master.zip)
+### 2. Modify platformio.ini
 
-### 2. Import project to PlatformIO
+Edit platformio.ini and setup upload_port variable acording to system settings
 
-Run Atom editor and in **PlatformIO** menu choose option **Open Project folder...**. Select folder with imported project.
+### 3. Build binary file
 
-### 3. Setup serial Port
-From the list with files in the left tab open the platformio.ini and change the **upload_port = com12** to the correct port with your ESP8266.
+In **PlatformIO** menu choose **PROJECT TASKS -> Build**
 
-### 4. Build binary file
+### 4. Upload firmware to ESP8266
 
-In **PlatformIO** menu choose option **Build**
+Connect ESP to PC via serial adapter. In **PlatformIO** menu choose option **PROJECT TASKS -> Upload**. 
 
-### 5. Upload firmware to ESP8266
+### 5. Installig Homie UI
 
-Connect ESP to PC via serial adapter. In **PlatformIO** menu choose option **Upload**.
+Copy UI bundle to data/homie folder  (See https://github.com/homieiot/homie-esp8266/tree/develop/data/homie )
 
-### 6. Installig Homie UI
+### 6. Upload SPIFFS image to ESP8266
 
-Copy UI bundle to data/homie folder  (See https://github.com/marvinroger/homie-esp8266/tree/develop/data/homie )
-
-### 7. Upload SPIFFS image to ESP8266
-
-In **Platformio** menu choose option **Run other target ...** and next **PIO uload SPIFFS image**
+In **Platformio** menu choose option **PROJECT TASKS ->Upload File System image**
 
 ## Initial configuration
 
-Software is build on top of Homie framework - configuration will be done in Homie-way. Connect to MyIOT-xxxxx AP and go to configration UI. Also there is Andorid configuration app - see http://marvinroger.github.io/homie-esp8266/develop/configuration/http-json-api/
+Software is build on top of Homie framework - configuration will be done in Homie-way. Connect to MyIOT-xxxxx AP and go to configration UI. Also there is Andorid configuration app - see https://homieiot.github.io/homie-esp8266/docs/develop-v3/configuration/http-json-api/
 
 ## Usage
 

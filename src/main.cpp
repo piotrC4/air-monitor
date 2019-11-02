@@ -51,7 +51,7 @@ struct EEpromDataStruct
 {
   int heaterTargetTemp;  // Target temperatur of heater
   unsigned long measureWindowSize; // Measur window size - [ms]
-  int keepAliveValue;    // Keepalive time
+  unsigned int keepAliveValue;    // Keepalive time
   int currentAltitude;   // Alitude for pressure measurement
 };
 
@@ -121,6 +121,20 @@ void HomieEventHandler(const HomieEvent& event)
       // Do whatever you want when OTA is successful
       digitalWrite(PIN_HEATER, LOW);
       break;
+    // Unused handlers:
+    case HomieEventType::WIFI_CONNECTED:
+    case HomieEventType::WIFI_DISCONNECTED:
+    case HomieEventType::OTA_PROGRESS:
+    case HomieEventType::OTA_FAILED:
+    case HomieEventType::MQTT_DISCONNECTED:
+    case HomieEventType::MQTT_READY:
+    case HomieEventType::MQTT_PACKET_ACKNOWLEDGED:
+    case HomieEventType::SENDING_STATISTICS:
+    case HomieEventType::STANDALONE_MODE:
+    case HomieEventType::ABOUT_TO_RESET:
+    case HomieEventType::READY_TO_SLEEP:
+    case HomieEventType::NORMAL_MODE:
+      break;
   }
 }
 
@@ -142,8 +156,8 @@ bool keepAliveHandlerTick(const HomieRange& range, const String& message)
  */
 bool keepAliveHandlerValue(const HomieRange& range, const String& message)
 {
-  int oldValue = gObjEEpromData.keepAliveValue;
-  int newValue = message.toInt();
+  unsigned int oldValue = gObjEEpromData.keepAliveValue;
+  unsigned int newValue = message.toInt();
   if (newValue>10)
   {
     gObjEEpromData.keepAliveValue = newValue;
@@ -212,6 +226,7 @@ bool PMhandlerDebug(const HomieRange& range, const String& message)
     LN.setLoglevel(LoggerNode::INFO);
     gObjPMsensorNode.setProperty("debug").send("OFF");
   }
+  return true;
 }
 
 /*
@@ -265,7 +280,7 @@ void HomieLoopHandler()
           if (temp != DEVICE_DISCONNECTED_C )
           {
             String tmpStr = "temperature/";
-            for (int j=0; j<sizeof(tmpDeviceAddress); j++)
+            for (unsigned int j=0; j<sizeof(tmpDeviceAddress); j++)
               tmpStr += String(tmpDeviceAddress[j], HEX);
             gObjEnviroNode.setProperty(tmpStr).send(String(temp));
           }
@@ -463,7 +478,7 @@ void setup()
   if ( gVarNoOfDS18B20 > 0 )
   {
     float temp, temp_max=-1;
-    uint8_t address[8];
+    // uint8_t address[8];
     DeviceAddress tmpDeviceAddress;
     gObjDS18B20.requestTemperatures();
     for (int i=0; i<gVarNoOfDS18B20; i++)
@@ -519,7 +534,7 @@ void loop()
     {
       float temp, temp_max=-1;
 
-      uint8_t address[8];
+      // uint8_t address[8];
       DeviceAddress tmpDeviceAddress;
       gObjDS18B20.requestTemperatures();
       for (int i=0; i<gVarNoOfDS18B20; i++)
