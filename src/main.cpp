@@ -38,8 +38,8 @@
 #define FORCED_RESET_PERIOD 2592000000
 
 /* Magic sequence for Autodetectable Binary Upload */
-const char *__FLAGGED_FW_NAME = "\xbf\x84\xe4\x13\x54" NODE_FIRMWARE "\x93\x44\x6b\xa7\x75";
-const char *__FLAGGED_FW_VERSION = "\x6a\x3f\x3e\x0e\xe1" NODE_VERSION  "\xb0\x30\x48\xd4\x1a";
+//const char *__FLAGGED_FW_NAME = "\xbf\x84\xe4\x13\x54" NODE_FIRMWARE "\x93\x44\x6b\xa7\x75";
+//const char *__FLAGGED_FW_VERSION = "\x6a\x3f\x3e\x0e\xe1" NODE_VERSION  "\xb0\x30\x48\xd4\x1a";
 /* End of magic sequence for Autodetectable Binary Upload */
 
 /*
