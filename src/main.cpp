@@ -13,8 +13,6 @@
 /*
  * global defines
  */
-#define NODE_FIRMWARE "dust-multi-sensor"
-#define NODE_VERSION "0.060"
 
 #define PIN_SDA D2
 #define PIN_SCL D1
@@ -439,7 +437,8 @@ void HomieSetupHandler()
  */
 void setup()
 {
-  Serial.begin(9600);
+
+  Serial.begin(CUST_SERIAL_SPEED);
 
   // Init EEPROM
   EEPROM.begin(sizeof(gObjEEpromData));
@@ -497,7 +496,7 @@ void setup()
 
   // Prepare Homie
   Homie_setBrand("MyIOT");
-  Homie_setFirmware(NODE_FIRMWARE, NODE_VERSION);
+  Homie_setFirmware(FIRMWARE_NAME, FIRMWARE_VER);
   Homie.onEvent(HomieEventHandler);
   Homie.disableLedFeedback();
   Homie.setResetTrigger(D8, HIGH, 4000);

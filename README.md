@@ -35,16 +35,19 @@ DS18B20 is used for reading temperature of air and as a source of temperature fo
 
 ## Installation:
 
-[Visual Studio Code](https://code.visualstudio.com/) and [PlatformIO IDE extenstion](https://docs.platformio.org/en/latest/ide/vscode.html)
-[GIT](https://git-scm.com/downloads)
+### Requirements
+
+* [Visual Studio Code](https://code.visualstudio.com/)
+* [PlatformIO IDE extenstion](https://docs.platformio.org/en/latest/ide/vscode.html)
+* [GIT](https://git-scm.com/downloads)
 
 ### 1. Clone the Repository into VS Code
 
-In VS Code press F1 enter ''git: clone'' + Enter and insert link to my repository (git@github.com:enc-X/air-monitor.git)
+In VS Code press F1 enter ''git: clone'' + Enter and insert link to my repository (https://github.com/enc-X/air-monitor)
 
-### 2. Modify platformio.ini
+### 2. Modify platformio.ini (optional)
 
-Edit platformio.ini and setup upload_port variable acording to system settings
+Edit platformio.ini and setup upload_port variable acording to system settings if PlatofmIO can'd identify proper COM port
 
 ### 3. Build binary file
 
