@@ -43,7 +43,7 @@ DS18B20 is used for reading temperature of air and as a source of temperature fo
 
 ### 1. Clone the Repository into VS Code
 
-In VS Code press F1 enter ''git: clone'' + Enter and insert link to my repository (https://github.com/enc-X/air-monitor)
+In VS Code press F1 enter ''git: clone'' + Enter and insert link to my repository (https://github.com/piotrC4/air-monitor)
 
 ### 2. Modify platformio.ini (optional)
 
